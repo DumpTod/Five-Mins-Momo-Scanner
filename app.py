@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 APP_ID       = os.environ.get("FYERS_APP_ID", "EMRCD1JW93-100")
-SECRET_ID    = os.environ.get("FYERS_SECRET_ID", "")
+SECRET_ID    = os.environ.get("FYERS_SECRET_ID", "VZKGCP1AA6")
 REDIRECT_URI = os.environ.get("REDIRECT_URI", "https://five-mins-momo-scanner.onrender.com/callback")
 
 # ── Token store (in-memory + file) ────────────────────────────
