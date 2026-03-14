@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 Mins Momo Trades — History</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #F5F6FA;
+    --surface:   #FFFFFF;
+    --border:    #E2E6EF;
+    --steel:     #4682B4;
+    --steel-dk:  #2E5F8A;
+    --steel-lt:  #EBF2F9;
+    --steel-mid: #6FA3CC;
+    --text:      #1A2332;
+    --muted:     #6B7A99;
+    --green:     #16A34A;
+    --green-lt:  #DCFCE7;
+    --red:       #DC2626;
+    --red-lt:    #FEE2E2;
+    --amber:     #D97706;
+    --amber-lt:  #FEF3C7;
+    --radius:    10px;
+    --shadow:    0 2px 12px rgba(70,130,180,0.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Top Bar ── */
+  .topbar {
+    background: var(--steel-dk); padding: 0 28px; height: 58px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 16px rgba(46,95,138,0.25);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .brand { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  .brand span { color: #93C5E8; font-weight: 400; }
+  .page-label {
+    font-size: 12px; font-weight: 600; color: #C8DEF0;
+    background: rgba(255,255,255,0.12); padding: 3px 10px;
+    border-radius: 20px; letter-spacing: 0.3px;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    padding: 8px 18px; border-radius: var(--radius);
+    border: none; cursor: pointer; transition: all 0.18s ease; text-decoration: none;
+  }
+  .btn-primary { background: #F59E0B; color: #1A1A1A; }
+  .btn-primary:hover { background: #FBBF24; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-ghost { background: rgba(255,255,255,0.12); color: #C8DEF0; border: 1px solid rgba(255,255,255,0.18); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.20); color: #fff; }
+  .btn-danger { background: rgba(220,38,38,0.15); color: #FCA5A5; border: 1px solid rgba(220,38,38,0.3); }
+  .btn-danger:hover { background: rgba(220,38,38,0.25); color: #fff; }
+  .btn-steel { background: var(--steel); color: #fff; }
+  .btn-steel:hover { background: var(--steel-dk); }
+
+  /* ── KPI Strip ── */
+  .kpi-strip {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 0;
+  }
+  .kpi {
+    padding: 0 18px; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .kpi:first-child { padding-left: 0; }
+  .kpi:last-child  { border-right: none; }
+  .kpi-label { font-size: 10px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; color: var(--muted); }
+  .kpi-val   { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); }
+  .kpi-val.green  { color: var(--green); }
+  .kpi-val.red    { color: var(--red); }
+  .kpi-val.steel  { color: var(--steel); }
+  .kpi-sub   { font-size: 10px; color: var(--muted); }
+
+  /* ── Main Content ── */
+  .main { padding: 20px 28px 40px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Analytics Grid ── */
+  .analytics-grid {
+    display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px;
+  }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; box-shadow: var(--shadow);
+  }
+  .chart-title {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  .chart-wrap { position: relative; }
+
+  /* ── Symbol breakdown ── */
+  .sym-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .sym-row:last-child { border-bottom: none; }
+  .sym-name { font-size: 12px; font-weight: 600; width: 90px; color: var(--text); }
+  .sym-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .sym-bar { height: 100%; background: var(--steel); border-radius: 3px; }
+  .sym-pnl { font-size: 12px; font-weight: 600; font-family: 'DM Mono', monospace; width: 70px; text-align: right; }
+
+  /* ── Trade Table ── */
+  .table-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .table-title { font-size: 14px; font-weight: 700; }
+  .table-actions { display: flex; gap: 8px; }
+
+  /* Filters */
+  .tbl-filters { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+  .tf-btn { padding: 5px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .tf-btn.active, .tf-btn:hover { border-color: var(--steel); background: var(--steel-lt); color: var(--steel-dk); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { background: var(--bg); }
+  th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--steel-lt); }
+
+  .dir-badge { padding: 3px 9px; border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+  .dir-badge.buy  { background: var(--green-lt); color: var(--green); }
+  .dir-badge.sell { background: var(--red-lt); color: var(--red); }
+
+  .outcome-badge {
+    padding: 3px 9px; border-radius: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .outcome-badge.target  { background: var(--green-lt); color: var(--green); }
+  .outcome-badge.stop    { background: var(--red-lt);   color: var(--red); }
+  .outcome-badge.pending { background: var(--amber-lt); color: var(--amber); }
+  .outcome-badge.expired { background: var(--border);   color: var(--muted); }
+
+  .pnl-pos { color: var(--green); font-weight: 700; font-family: 'DM Mono', monospace; }
+  .pnl-neg { color: var(--red);   font-weight: 700; font-family: 'DM Mono', monospace; }
+  .pnl-nil { color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  .sym-tag {
+    font-size: 11px; font-weight: 700; color: var(--steel-dk);
+    background: var(--steel-lt); padding: 2px 8px; border-radius: 5px;
+  }
+  .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  .grade-dot { width: 22px; height: 22px; border-radius: 6px; background: var(--steel); color: #fff; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* outcome select */
+  select.outcome-sel {
+    font-size: 10px; font-weight: 700; padding: 3px 6px;
+    border-radius: 5px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer;
+  }
+
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--border); font-size: 14px; transition: color 0.15s; }
+  .del-btn:hover { color: var(--red); }
+
+  /* empty table */
+  .tbl-empty { padding: 60px; text-align: center; color: var(--muted); }
+  .tbl-empty .ico { font-size: 36px; margin-bottom: 10px; }
+
+  /* ── Rescan overlay ── */
+  .scanning-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(26,35,50,0.45); backdrop-filter: blur(3px); align-items: center; justify-content: center; }
+  .scanning-overlay.active { display: flex; }
+  .scanning-box { background: var(--surface); border-radius: 16px; padding: 40px 50px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .scan-spinner { width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--steel); animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--text); color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2); animation: toastIn 0.3s ease; max-width: 320px; }
+  .toast.success { background: var(--green); }
+  .toast.error   { background: var(--red); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="brand">⚡ 5 Mins Momo <span>Trades</span></div>
+    <div class="page-label">Signal History</div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-primary" id="rescanBtn" onclick="runRescan()">🔄 Rescan</button>
+    <button class="btn btn-ghost" onclick="openToken()">🔑 Token</button>
+    <a href="https://five-mins-momo-scanner.onrender.com/" class="btn btn-ghost">← Scanner</a>
+    <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-danger" onclick="confirmClear()">🗑 Clear</button>
+  </div>
+</div>
+
+<!-- KPI Strip -->
+<div class="kpi-strip">
+  <div class="kpi">
+    <div class="kpi-label">Total Signals</div>
+    <div class="kpi-val steel" id="kTotal">—</div>
+    <div class="kpi-sub">All time</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Targets Hit</div>
+    <div class="kpi-val green" id="kWins">—</div>
+    <div class="kpi-sub">Closed profitable</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Stops Hit</div>
+    <div class="kpi-val red" id="kLosses">—</div>
+    <div class="kpi-sub">Closed at loss</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Win Rate</div>
+    <div class="kpi-val" id="kWR">—</div>
+    <div class="kpi-sub">On closed trades</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Pending</div>
+    <div class="kpi-val" id="kPending">—</div>
+    <div class="kpi-sub">Entry hit, open</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Expired</div>
+    <div class="kpi-val" id="kExpired">—</div>
+    <div class="kpi-sub">Entry never hit</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Net P&L (pts)</div>
+    <div class="kpi-val" id="kPnl">—</div>
+    <div class="kpi-sub">Closed trades</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Best Trade</div>
+    <div class="kpi-val green" id="kBest">—</div>
+    <div class="kpi-sub">Points gain</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Analytics -->
+  <div class="analytics-grid">
+    <!-- Equity Curve -->
+    <div class="chart-card">
+      <div class="chart-title">Equity Curve</div>
+      <div class="chart-sub">Cumulative points (closed trades only)</div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Win/Loss Donut -->
+    <div class="chart-card">
+      <div class="chart-title">Outcome Breakdown</div>
+      <div class="chart-sub">All signals by result</div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="outcomeChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Symbol P&L -->
+    <div class="chart-card">
+      <div class="chart-title">P&L by Instrument</div>
+      <div class="chart-sub">Cumulative points per index</div>
+      <div id="symBreakdown"></div>
+    </div>
+  </div>
+
+  <!-- Second row charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <!-- Direction split -->
+    <div class="chart-card">
+      <div class="chart-title">Buy vs Sell Distribution</div>
+      <div class="chart-sub">Signal direction over time</div>
+      <div class="chart-wrap" style="height:180px">
+        <canvas id="dirChart"></canvas>
+      </div>
+    </div>
+    <!-- P&L distribution -->
+    <div class="chart-card">
+      <div class="chart-title">P&L Distribution</div>
+      <div class="chart-sub">Points per closed trade (histogram)</div>
+      <div class="chart-wrap" style="height:180px">
+        <canvas id="pnlChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">📋 Trade Journal</div>
+      <div class="table-actions">
+        <span style="font-size:12px;color:var(--muted);align-self:center" id="tradeCount">0 trades</span>
+      </div>
+    </div>
+    <div class="tbl-filters">
+      <button class="tf-btn active" onclick="setTblFilter('all',this)">All</button>
+      <button class="tf-btn" onclick="setTblFilter('target',this)">🎯 Target</button>
+      <button class="tf-btn" onclick="setTblFilter('stop',this)">🛑 Stop</button>
+      <button class="tf-btn" onclick="setTblFilter('pending',this)">⏳ Pending</button>
+      <button class="tf-btn" onclick="setTblFilter('expired',this)">❌ Expired</button>
+      <button class="tf-btn" onclick="setTblFilter('BUY',this)">🟢 Buy</button>
+      <button class="tf-btn" onclick="setTblFilter('SELL',this)">🔴 Sell</button>
+    </div>
+    <div id="tableWrap">
+      <div class="tbl-empty"><div class="ico">📭</div><p>No trades yet — run a scan first.</p></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Scanning Overlay -->
+<div class="scanning-overlay" id="scanOverlay">
+  <div class="scanning-box">
+    <div class="scan-spinner"></div>
+    <div class="scan-label">Rescanning outcomes...</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Checking entry, TP & SL for all pending trades</div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+  let allTrades   = [];
+  let tblFilter   = 'all';
+  let charts      = {};
+
+  // ── Load on mount ──────────────────────────────────────────
+  async function loadAll() {
+    const [tradesRes, statsRes] = await Promise.all([
+      fetch('https://five-mins-momo-scanner.onrender.com/api/trades'), fetch('https://five-mins-momo-scanner.onrender.com/api/stats')
+    ]);
+    allTrades = await tradesRes.json();
+    const stats = await statsRes.json();
+    updateKPIs(stats);
+    renderTable(allTrades);
+    renderCharts(stats, allTrades);
+  }
+
+  // ── KPIs ───────────────────────────────────────────────────
+  function updateKPIs(s) {
+    document.getElementById('kTotal').textContent   = s.total;
+    document.getElementById('kWins').textContent    = s.wins;
+    document.getElementById('kLosses').textContent  = s.losses;
+    document.getElementById('kPending').textContent = s.pending;
+    document.getElementById('kExpired').textContent = s.expired;
+
+    const wr = document.getElementById('kWR');
+    wr.textContent = s.win_rate + '%';
+    wr.className   = 'kpi-val ' + (s.win_rate >= 50 ? 'green' : s.win_rate > 0 ? '' : 'red');
+
+    const pnl = document.getElementById('kPnl');
+    pnl.textContent = (s.net_pnl >= 0 ? '+' : '') + s.net_pnl;
+    pnl.className   = 'kpi-val ' + (s.net_pnl >= 0 ? 'green' : 'red');
+
+    document.getElementById('kBest').textContent = '+' + s.best;
+  }
+
+  // ── Table ──────────────────────────────────────────────────
+  function setTblFilter(val, el) {
+    tblFilter = val;
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderTable(allTrades);
+  }
+
+  function renderTable(trades) {
+    const filtered = tblFilter === 'all'
+      ? trades
+      : trades.filter(t => t.outcome === tblFilter || t.direction === tblFilter);
+
+    document.getElementById('tradeCount').textContent = `${filtered.length} trade${filtered.length !== 1 ? 's' : ''}`;
+
+    if (filtered.length === 0) {
+      document.getElementById('tableWrap').innerHTML =
+        `<div class="tbl-empty"><div class="ico">📭</div><p>No trades match this filter.</p></div>`;
+      return;
+    }
+
+    const rows = filtered.map(t => {
+      const pnlHtml = t.pnl === null || t.pnl === undefined
+        ? `<span class="pnl-nil">—</span>`
+        : t.pnl >= 0
+          ? `<span class="pnl-pos">+${t.pnl.toLocaleString('en-IN')}</span>`
+          : `<span class="pnl-neg">${t.pnl.toLocaleString('en-IN')}</span>`;
+
+      const outcomeMap = {
+        target : '🎯 Target Hit',
+        stop   : '🛑 SL Hit',
+        pending: '⏳ Pending',
+        expired: '❌ Expired',
+      };
+      const oc = t.outcome || 'pending';
+
+      return `<tr>
+        <td class="mono" style="font-size:11px;color:var(--muted)">${t.time || '—'}</td>
+        <td><span class="sym-tag">${t.symbol}</span></td>
+        <td><span class="dir-badge ${(t.direction||'').toLowerCase()}">${t.direction}</span></td>
+        <td><span class="grade-dot">${t.grade || 'B'}</span></td>
+        <td class="mono">${(t.score || 0)}</td>
+        <td class="mono">${fmt(t.entry)}</td>
+        <td class="mono" style="color:var(--red)">${fmt(t.sl)}</td>
+        <td class="mono" style="color:var(--amber)">${fmt(t.t1)}</td>
+        <td class="mono" style="color:var(--green)">${fmt(t.t2)}</td>
+        <td style="font-size:11px">${t.rr || '—'}</td>
+        <td><span class="outcome-badge ${oc}">${outcomeMap[oc] || oc}</span></td>
+        <td class="mono" style="font-size:11px">${fmt(t.exit_price) || '—'}</td>
+        <td>${pnlHtml}</td>
+        <td><button class="del-btn" onclick="deleteTrade('${t.id}')">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('tableWrap').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th><th>Symbol</th><th>Dir</th><th>Grade</th><th>Score</th>
+            <th>Entry</th><th>SL</th><th>T1</th><th>T2</th><th>R:R</th>
+            <th>Outcome</th><th>Exit</th><th>P&L</th><th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function fmt(v) {
+    if (v === null || v === undefined) return '—';
+    return Number(v).toLocaleString('en-IN');
+  }
+
+  // ── Charts ─────────────────────────────────────────────────
+  function renderCharts(stats, trades) {
+    // Destroy old charts
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+
+    const steel = '#4682B4', green = '#16A34A', red = '#DC2626', amber = '#D97706';
+
+    // 1. Equity Curve
+    const eq = stats.equity_curve || [];
+    charts.equity = new Chart(document.getElementById('equityChart'), {
+      type: 'line',
+      data: {
+        labels: eq.map(p => p.x),
+        datasets: [{
+          data: eq.map(p => p.y),
+          borderColor: steel,
+          backgroundColor: 'rgba(70,130,180,0.08)',
+          borderWidth: 2, fill: true, tension: 0.3,
+          pointRadius: eq.length > 30 ? 0 : 3,
+          pointBackgroundColor: steel,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { grid: { color: '#E2E6EF' }, ticks: { font: { family: 'DM Mono', size: 10 } } }
+        }
+      }
+    });
+
+    // 2. Outcome donut
+    charts.outcome = new Chart(document.getElementById('outcomeChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Target', 'Stop', 'Pending', 'Expired'],
+        datasets: [{
+          data: [stats.wins, stats.losses, stats.pending, stats.expired],
+          backgroundColor: [green, red, amber, '#CBD5E1'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { family: 'DM Sans', size: 10 }, padding: 10, boxWidth: 10 }
+          }
+        }
+      }
+    });
+
+    // 3. Symbol P&L bars
+    const syms = stats.by_symbol || {};
+    const symHtml = Object.entries(syms).map(([sym, d]) => {
+      const pnl   = d.pnl || 0;
+      const pct   = Math.min(Math.abs(pnl) / (Math.max(...Object.values(syms).map(x => Math.abs(x.pnl || 0)), 1)) * 100, 100);
+      const color = pnl >= 0 ? green : red;
+      return `<div class="sym-row">
+        <div class="sym-name">${sym}</div>
+        <div class="sym-bar-wrap"><div class="sym-bar" style="width:${pct}%;background:${color}"></div></div>
+        <div class="sym-pnl ${pnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${pnl >= 0 ? '+' : ''}${pnl}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('symBreakdown').innerHTML = symHtml || '<div style="color:var(--muted);font-size:12px;padding:20px">No closed trades yet</div>';
+
+    // 4. Direction bar
+    const bd = stats.by_direction || {};
+    charts.dir = new Chart(document.getElementById('dirChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Buy', 'Sell'],
+        datasets: [{
+          data: [bd.BUY || 0, bd.SELL || 0],
+          backgroundColor: [green, red],
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: '#E2E6EF' }, ticks: { font: { family: 'DM Mono', size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 } } }
+        }
+      }
+    });
+
+    // 5. P&L histogram
+    const pnls = stats.pnl_distribution || [];
+    const bins  = buildHistogram(pnls, 10);
+    charts.pnl = new Chart(document.getElementById('pnlChart'), {
+      type: 'bar',
+      data: {
+        labels: bins.map(b => b.label),
+        datasets: [{
+          data: bins.map(b => b.count),
+          backgroundColor: bins.map(b => b.mid >= 0 ? 'rgba(22,163,74,0.7)' : 'rgba(220,38,38,0.7)'),
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: '#E2E6EF' }, ticks: { font: { family: 'DM Mono', size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'DM Mono', size: 9 }, maxRotation: 45 } }
+        }
+      }
+    });
+  }
+
+  function buildHistogram(data, bins) {
+    if (!data.length) return [];
+    const min = Math.min(...data), max = Math.max(...data);
+    const step = (max - min) / bins || 1;
+    const result = Array.from({length: bins}, (_, i) => ({
+      min: min + i * step, max: min + (i+1) * step,
+      mid: min + (i + 0.5) * step, count: 0,
+      label: (min + i * step).toFixed(0)
+    }));
+    data.forEach(v => {
+      const i = Math.min(Math.floor((v - min) / step), bins - 1);
+      if (result[i]) result[i].count++;
+    });
+    return result;
+  }
+
+  // ── Rescan ─────────────────────────────────────────────────
+  async function runRescan() {
+    document.getElementById('scanOverlay').classList.add('active');
+    document.getElementById('rescanBtn').disabled = true;
+    try {
+      const storedToken = localStorage.getItem('fyers_token') || '';
+      const r = await fetch('https://five-mins-momo-scanner.onrender.com/api/rescan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: storedToken })
+      });
+      const d = await r.json();
+      allTrades = d.trades;
+      renderTable(allTrades);
+      const statsRes = await fetch('https://five-mins-momo-scanner.onrender.com/api/stats');
+      const stats    = await statsRes.json();
+      updateKPIs(stats);
+      renderCharts(stats, allTrades);
+      showToast(`✅ Rescan complete — ${d.updated} trades evaluated`, 'success');
+    } catch(e) {
+      showToast('Rescan failed: ' + e.message, 'error');
+    } finally {
+      document.getElementById('scanOverlay').classList.remove('active');
+      document.getElementById('rescanBtn').disabled = false;
+    }
+  }
+
+  // ── Delete trade ───────────────────────────────────────────
+  async function deleteTrade(id) {
+    await fetch(`https://five-mins-momo-scanner.onrender.com/api/trades/${id}`, { method: 'DELETE' });
+    await loadAll();
+    showToast('Trade removed', '');
+  }
+
+  // ── Clear all ──────────────────────────────────────────────
+  async function confirmClear() {
+    if (!confirm('Clear ALL trade history? This cannot be undone.')) return;
+    await fetch('https://five-mins-momo-scanner.onrender.com/api/trades/clear', { method: 'POST' });
+    allTrades = [];
+    renderTable([]);
+    showToast('History cleared', '');
+  }
+
+  // ── CSV export ─────────────────────────────────────────────
+  function exportCSV() {
+    const cols = ['time','symbol','direction','grade','score','entry','sl','t1','t2','rr','outcome','exit_price','pnl'];
+    const rows = [cols.join(','), ...allTrades.map(t => cols.map(c => t[c] ?? '').join(','))];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `momo_trades_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  // ── Toast ──────────────────────────────────────────────────
+  function showToast(msg, type) {
+    const wrap = document.getElementById('toastWrap');
+    const t    = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    wrap.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  loadAll();
+</script>
+
+<!-- Token Modal -->
+<div id="tokenModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(26,35,50,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:480px;box-shadow:0 24px 64px rgba(0,0,0,0.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">🔑 Update Access Token</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">Paste your fresh Fyers token below</div>
+      </div>
+      <button onclick="closeToken()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+
+    <div id="tokenStatusBanner" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:14px"></div>
+
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Access Token</label>
+      <textarea id="tokenInput" rows="4"
+        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text);resize:none;outline:none;line-height:1.5"
+        onfocus="this.style.borderColor='var(--steel)'"
+        onblur="this.style.borderColor='var(--border)'"></textarea>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);background:var(--steel-lt);padding:10px 12px;border-radius:8px;margin-bottom:18px;line-height:1.6">
+      📋 <b>How to get token:</b> Run Colab Cell 3 → open URL → login → run Cell 4 → copy the token printed there
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button onclick="saveToken()" id="saveTokenBtn"
+        style="flex:1;background:var(--steel);color:#fff;border:none;padding:11px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+        ✅ Save & Validate Token
+      </button>
+      <button onclick="closeToken()"
+        style="background:var(--bg);color:var(--muted);border:1px solid var(--border);padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Token Modal ────────────────────────────────────────────
+  function openToken()  {
+    document.getElementById('tokenModal').style.display = 'flex';
+    const stored = localStorage.getItem('fyers_token') || '';
+    if (stored) document.getElementById('tokenInput').value = stored;
+    checkCurrentToken();
+  }
+  function closeToken() { document.getElementById('tokenModal').style.display = 'none'; }
+
+  async function checkCurrentToken() {
+    const banner = document.getElementById('tokenStatusBanner');
+    banner.style.display = 'block';
+    banner.style.background = 'var(--amber-lt)';
+    banner.style.color = 'var(--amber)';
+    banner.textContent = '⏳ Checking current token...';
+    try {
+      const r = await fetch('https://five-mins-momo-scanner.onrender.com/api/token/status');
+      const d = await r.json();
+      if (d.valid) {
+        banner.style.background = 'var(--green-lt)';
+        banner.style.color = 'var(--green)';
+        banner.textContent = '✅ Token is active — ' + (d.name || 'authenticated');
+        try { document.getElementById('tokenDot').className = 'dot dot-ok'; } catch(e) {}
+        try { document.getElementById('tokenStatus').textContent = 'Token Active'; } catch(e) {}
+      } else {
+        banner.style.background = 'var(--red-lt)';
+        banner.style.color = 'var(--red)';
+        banner.textContent = '❌ Token expired — paste a new one below';
+        try { document.getElementById('tokenDot').className = 'dot dot-err'; } catch(e) {}
+        try { document.getElementById('tokenStatus').textContent = 'Token Expired'; } catch(e) {}
+      }
+    } catch(e) {
+      banner.textContent = '⚠️ Could not check token status';
+    }
+  }
+
+  async function saveToken() {
+    const token = document.getElementById('tokenInput').value.trim();
+    if (!token) { showToast('Please paste a token first', 'error'); return; }
+    const btn = document.getElementById('saveTokenBtn');
+    btn.textContent = '⏳ Validating...';
+    btn.disabled = true;
+    try {
+      const r = await fetch('https://five-mins-momo-scanner.onrender.com/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        try { document.getElementById('tokenDot').className = 'dot dot-ok'; } catch(e) {}
+        try { document.getElementById('tokenStatus').textContent = 'Token Active'; } catch(e) {}
+        showToast('✅ Token saved — ' + (d.name || 'authenticated'), 'success');
+        closeToken();
+      } else {
+        showToast('❌ ' + (d.error || 'Invalid token'), 'error');
+        const banner = document.getElementById('tokenStatusBanner');
+        banner.style.display = 'block';
+        banner.style.background = 'var(--red-lt)';
+        banner.style.color = 'var(--red)';
+        banner.textContent = '❌ ' + (d.error || 'Token validation failed');
+      }
+    } catch(e) {
+      showToast('Network error', 'error');
+    } finally {
+      btn.textContent = '✅ Save & Validate Token';
+      btn.disabled = false;
+    }
+  }
+
+  // Check token status on page load
+  window.addEventListener('load', async () => {
+    try {
+      const r = await fetch('https://five-mins-momo-scanner.onrender.com/api/token/status');
+      const d = await r.json();
+      if (d.valid) {
+        try { document.getElementById('tokenDot').className  = 'dot dot-ok'; } catch(e) {}
+        try { document.getElementById('tokenStatus').textContent = 'Token Active'; } catch(e) {}
+      } else {
+        try { document.getElementById('tokenDot').className  = 'dot dot-err'; } catch(e) {}
+        try {} catch(e) {}
+      }
+    } catch(e) {}
+  });
+</script>
+
+</body>
+</html>

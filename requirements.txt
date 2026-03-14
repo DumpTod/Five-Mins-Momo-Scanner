@@ -1,0 +1,4 @@
+flask
+flask-cors
+fyers-apiv3
+gunicorn

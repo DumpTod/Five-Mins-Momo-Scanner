@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 Mins Momo Trades — Scanner</title>
+<style>
+:root{
+  --bg:#F5F6FA;--white:#fff;--steel:#4682B4;--steel-dk:#2E5F8A;
+  --steel-lt:#EBF2F9;--text:#1A2332;--muted:#6B7A99;
+  --green:#16A34A;--green-lt:#DCFCE7;--red:#DC2626;--red-lt:#FEE2E2;
+  --amber:#D97706;--amber-lt:#FEF3C7;--border:#E2E6EF;
+  --shadow:0 2px 12px rgba(70,130,180,0.10);--radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+.header{background:linear-gradient(135deg,var(--steel-dk),var(--steel));padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.header h1{font-size:18px;color:#fff;font-weight:700;}
+.header .sub{font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;}
+.header-right{display:flex;gap:8px;flex-wrap:wrap;}
+.hb{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all 0.2s;}
+.hb-scan{background:#F59E0B;color:#1A1A1A;}
+.hb-scan:hover{background:#FBBF24;}
+.hb-scan:disabled{opacity:0.5;cursor:not-allowed;}
+.hb-ghost{background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);}
+.hb-ghost:hover{background:rgba(255,255,255,0.25);}
+
+.statusbar{background:var(--white);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;}
+.status-left{display:flex;align-items:center;gap:10px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#888;}
+.dot.active{background:var(--green);box-shadow:0 0 6px var(--green);}
+.dot.closed{background:var(--amber);}
+.dot.error{background:var(--red);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.status-right{display:flex;gap:14px;color:var(--muted);}
+
+.filters{padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;background:var(--white);border-bottom:1px solid var(--border);}
+.f-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--muted);transition:all 0.15s;}
+.f-btn.active,.f-btn:hover{border-color:var(--steel);background:var(--steel-lt);color:var(--steel-dk);}
+
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px;}
+@media(max-width:700px){.panels{grid-template-columns:1fr;}}
+.panel{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.panel-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.panel-header.buy{background:linear-gradient(135deg,#ecfdf5,#d1fae5);}
+.panel-header.sell{background:linear-gradient(135deg,#fef2f2,#fecaca);}
+.panel-title{font-size:14px;font-weight:700;}
+.panel-title.buy-t{color:var(--green);}
+.panel-title.sell-t{color:var(--red);}
+.panel-count{font-size:22px;font-weight:800;}
+.panel-count.buy-c{color:var(--green);}
+.panel-count.sell-c{color:var(--red);}
+.panel-body{padding:10px;max-height:600px;overflow-y:auto;}
+
+.card{background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid var(--border);}
+.card.buy-card{border-left-color:var(--green);}
+.card.sell-card{border-left-color:var(--red);}
+.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.card-sym{font-size:15px;font-weight:700;}
+.card-time{font-size:10px;color:var(--muted);}
+.badge{padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;color:#fff;}
+.badge.buy{background:var(--green);}
+.badge.sell{background:var(--red);}
+.prices{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.price-box{background:var(--white);border:1px solid var(--border);border-radius:6px;padding:6px 8px;text-align:center;}
+.price-lbl{font-size:9px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--muted);}
+.price-val{font-size:13px;font-weight:700;margin-top:2px;font-family:monospace;}
+.price-val.entry{color:var(--steel);}
+.price-val.sl{color:var(--red);}
+.price-val.t1{color:var(--amber);}
+.price-val.t2{color:var(--green);}
+.card-meta{display:flex;align-items:center;gap:8px;}
+.grade-box{width:24px;height:24px;border-radius:6px;background:var(--steel);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.score-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.score-fill{height:100%;background:var(--steel);border-radius:3px;}
+.rr-tag{font-size:11px;font-weight:600;background:var(--steel-lt);color:var(--steel-dk);padding:2px 8px;border-radius:5px;font-family:monospace;}
+
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty .ico{font-size:36px;margin-bottom:10px;}
+.loading{text-align:center;padding:50px;}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--steel);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;transform:translateY(100px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+.toast.error{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;}
+.toast.info{background:#eff6ff;color:#2563eb;border:1px solid #93c5fd;}
+
+.footer{padding:14px 24px;text-align:center;color:var(--muted);font-size:11px;margin-top:10px;}
+.footer a{color:var(--steel);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>⚡ 5 Mins Momo Trades</h1>
+    <div class="sub">EMA 20 · MACD 12/26/9 · 5min · NIFTY50 · NIFTYBANK · SENSEX</div>
+  </div>
+  <div class="header-right">
+    <button class="hb hb-scan" id="scanBtn" onclick="runScan()">⚡ Scan Now</button>
+    <a href="https://five-mins-momo-scanner.onrender.com/history" class="hb hb-ghost">📋 History</a>
+    <a href="https://five-mins-momo-scanner.onrender.com/refresh" class="hb hb-ghost" target="_blank">🔑 Token</a>
+  </div>
+</div>
+
+<div class="statusbar">
+  <div class="status-left">
+    <div class="dot" id="sDot"></div>
+    <span id="sText">Connecting...</span>
+  </div>
+  <div class="status-right">
+    <span>🕐 <span id="sTime">--:--</span></span>
+    <span>Buy: <b id="buyCount">0</b></span>
+    <span>Sell: <b id="sellCount">0</b></span>
+    <span id="lastScan"></span>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="f-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="f-btn" onclick="setFilter('NIFTY50',this)">NIFTY50</button>
+  <button class="f-btn" onclick="setFilter('NIFTYBANK',this)">NIFTYBANK</button>
+  <button class="f-btn" onclick="setFilter('SENSEX',this)">SENSEX</button>
+  <button class="f-btn" onclick="setFilter('BUY',this)">🟢 Buy</button>
+  <button class="f-btn" onclick="setFilter('SELL',this)">🔴 Sell</button>
+</div>
+
+<div class="panels">
+  <div class="panel">
+    <div class="panel-header buy">
+      <div class="panel-title buy-t">📈 Intraday Buy</div>
+      <div class="panel-count buy-c" id="buyPanel">0</div>
+    </div>
+    <div class="panel-body" id="buyBody">
+      <div class="empty"><div class="ico">📈</div><p>No Buy Signals</p><p style="font-size:11px;margin-top:4px">Click Scan Now to find opportunities</p></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header sell">
+      <div class="panel-title sell-t">📉 Intraday Sell</div>
+      <div class="panel-count sell-c" id="sellPanel">0</div>
+    </div>
+    <div class="panel-body" id="sellBody">
+      <div class="empty"><div class="ico">📉</div><p>No Sell Signals</p><p style="font-size:11px;margin-top:4px">Click Scan Now to find opportunities</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  5 Mins Momo Trades · EMA 20 + MACD 12/26/9 · 5min ·
+  <a href="https://five-mins-momo-scanner.onrender.com/history">History</a> ·
+  <a href="https://five-mins-momo-scanner.onrender.com/refresh" target="_blank">Refresh Token</a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API = 'https://five-mins-momo-scanner.onrender.com';
+var allSignals = [];
+var activeFilter = 'all';
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(function(){ t.className = 'toast'; }, 3500);
+}
+
+function updateStatus(data) {
+  var s = data.scanner_status || 'UNKNOWN';
+  var dot = document.getElementById('sDot');
+  var txt = document.getElementById('sText');
+  if (s === 'ACTIVE') { dot.className = 'dot active'; txt.textContent = 'Scanner Active'; }
+  else if (s === 'NO_TOKEN') { dot.className = 'dot error'; txt.textContent = 'Token Expired — Click 🔑 Token'; }
+  else if (s === 'MARKET_CLOSED') { dot.className = 'dot closed'; txt.textContent = 'Market Closed'; }
+  else { dot.className = 'dot'; txt.textContent = s; }
+}
+
+function cardHtml(s) {
+  var isBuy = s.direction === 'BUY';
+  return '<div class="card ' + (isBuy ? 'buy-card' : 'sell-card') + '">' +
+    '<div class="card-top">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<span class="card-sym">' + s.symbol + '</span>' +
+        '<span class="badge ' + (isBuy ? 'buy' : 'sell') + '">' + s.direction + '</span>' +
+      '</div>' +
+      '<span class="card-time">' + (s.time || '') + '</span>' +
+    '</div>' +
+    '<div class="prices">' +
+      '<div class="price-box"><div class="price-lbl">Entry</div><div class="price-val entry">' + s.entry + '</div></div>' +
+      '<div class="price-box"><div class="price-lbl">Stop Loss</div><div class="price-val sl">' + s.sl + '</div></div>' +
+      '<div class="price-box"><div class="price-lbl">Target 1</div><div class="price-val t1">' + s.t1 + '</div></div>' +
+      '<div class="price-box"><div class="price-lbl">Target 2</div><div class="price-val t2">' + s.t2 + '</div></div>' +
+    '</div>' +
+    '<div class="card-meta">' +
+      '<div class="grade-box">' + (s.grade || 'B') + '</div>' +
+      '<div class="score-bar"><div class="score-fill" style="width:' + (s.score || 60) + '%"></div></div>' +
+      '<span style="font-size:11px;color:var(--muted)">Score ' + (s.score || 0) + '</span>' +
+      '<span class="rr-tag">R:R ' + (s.rr || '') + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderSignals() {
+  var f = activeFilter;
+  var filtered = allSignals.filter(function(s) {
+    return f === 'all' || s.symbol === f || s.direction === f;
+  });
+  var buys  = filtered.filter(function(s){ return s.direction === 'BUY'; });
+  var sells = filtered.filter(function(s){ return s.direction === 'SELL'; });
+
+  document.getElementById('buyPanel').textContent  = buys.length;
+  document.getElementById('sellPanel').textContent = sells.length;
+  document.getElementById('buyCount').textContent  = buys.length;
+  document.getElementById('sellCount').textContent = sells.length;
+
+  document.getElementById('buyBody').innerHTML = buys.length
+    ? buys.map(cardHtml).join('')
+    : '<div class="empty"><div class="ico">📈</div><p>No Buy Signals</p></div>';
+  document.getElementById('sellBody').innerHTML = sells.length
+    ? sells.map(cardHtml).join('')
+    : '<div class="empty"><div class="ico">📉</div><p>No Sell Signals</p></div>';
+}
+
+function saveHistory(signals) {
+  try {
+    var existing = JSON.parse(localStorage.getItem('momoHistory') || '[]');
+    var ids = {}; existing.forEach(function(s){ if(s.id) ids[s.id] = true; });
+    var newOnes = signals.filter(function(s){ return s.id && !ids[s.id]; });
+    newOnes.forEach(function(s){ existing.unshift(s); });
+    if (existing.length > 2000) existing = existing.slice(0, 2000);
+    localStorage.setItem('momoHistory', JSON.stringify(existing));
+  } catch(e) {}
+}
+
+async function runScan() {
+  var btn = document.getElementById('scanBtn');
+  btn.disabled = true; btn.textContent = '⏳ Scanning...';
+  document.getElementById('buyBody').innerHTML = '<div class="loading"><div class="spinner"></div><p style="font-size:12px;color:#aaa">Scanning markets...</p></div>';
+  document.getElementById('sellBody').innerHTML = '<div class="loading"><div class="spinner"></div><p style="font-size:12px;color:#aaa">Scanning markets...</p></div>';
+
+  try {
+    var r = await fetch(API + '/api/signals');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    updateStatus(d);
+    allSignals = d.signals || [];
+    renderSignals();
+    if (allSignals.length > 0) saveHistory(allSignals);
+    if (d.errors && d.errors.length > 0) {
+      d.errors.forEach(function(e){ showToast(e, 'error'); });
+    } else {
+      showToast('Scan complete — ' + allSignals.length + ' signal(s)', allSignals.length > 0 ? 'success' : 'info');
+    }
+    document.getElementById('lastScan').textContent = 'Last: ' + new Date().toLocaleTimeString('en-IN', {hour12:false});
+  } catch(e) {
+    showToast('Connection error — check token', 'error');
+    document.getElementById('sDot').className = 'dot error';
+    document.getElementById('sText').textContent = 'Connection Error';
+    document.getElementById('buyBody').innerHTML = '<div class="empty"><div class="ico">📈</div><p>No Buy Signals</p></div>';
+    document.getElementById('sellBody').innerHTML = '<div class="empty"><div class="ico">📉</div><p>No Sell Signals</p></div>';
+  }
+  btn.disabled = false; btn.textContent = '⚡ Scan Now';
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.f-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  renderSignals();
+}
+
+setInterval(function(){
+  var h = new Date().toLocaleTimeString('en-IN',{hour12:false,timeZone:'Asia/Kolkata'});
+  document.getElementById('sTime').textContent = h;
+}, 1000);
+
+runScan();
+setInterval(runScan, 60000);
+</script>
+</body>
+</html>
