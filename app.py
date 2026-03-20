@@ -4,6 +4,8 @@ Modelled on working StrikeTrail/ProfitMaster pattern
 """
 
 import os, json
+import google.generativeai as genai
+import os
 from datetime import datetime, date, timedelta, timezone
 from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
